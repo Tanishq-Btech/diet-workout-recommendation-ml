@@ -2,29 +2,20 @@ from flask import Flask, render_template, request, redirect, session
 import sqlite3
 import pandas as pd
 import pickle
+import os
 from sklearn.metrics.pairwise import cosine_similarity
+
+# ---------------- APP CONFIG ----------------
 
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-# ---------------- LOAD MODEL & DATA ----------------
+# ---------------- DATABASE (RENDER SAFE) ----------------
 
-with open("model.pkl", "rb") as f:
-    scaler = pickle.load(f)
-    label_enc = pickle.load(f)
-
-data = pd.read_csv("gym recommendation.csv")
-
-features = [
-    'Sex', 'Age', 'Height', 'Weight',
-    'Hypertension', 'Diabetes', 'BMI',
-    'Level', 'Fitness Goal', 'Fitness Type'
-]
-
-# ---------------- DATABASE ----------------
+DB_PATH = os.path.join("/tmp", "users.db")
 
 def get_db():
-    return sqlite3.connect("users.db")
+    return sqlite3.connect(DB_PATH)
 
 def init_db():
     con = get_db()
@@ -40,9 +31,23 @@ def init_db():
 
 init_db()
 
+# ---------------- LOAD MODEL & DATA ----------------
+
+with open("model.pkl", "rb") as f:
+    scaler = pickle.load(f)
+    label_enc = pickle.load(f)
+
+data = pd.read_csv("gym recommendation.csv")
+
+FEATURES = [
+    'Sex', 'Age', 'Height', 'Weight',
+    'Hypertension', 'Diabetes', 'BMI',
+    'Level', 'Fitness Goal', 'Fitness Type'
+]
+
 # ---------------- ROUTES ----------------
 
-# ROOT FIX (IMPORTANT)
+# ROOT ROUTE (FIX FOR "NOT FOUND")
 @app.route("/")
 def home():
     return redirect("/login")
@@ -51,17 +56,20 @@ def home():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        user = request.form["username"]
-        pwd = request.form["password"]
+        username = request.form["username"]
+        password = request.form["password"]
 
         con = get_db()
         cur = con.cursor()
-        cur.execute("SELECT * FROM users WHERE username=? AND password=?", (user, pwd))
-        result = cur.fetchone()
+        cur.execute(
+            "SELECT * FROM users WHERE username=? AND password=?",
+            (username, password)
+        )
+        user = cur.fetchone()
         con.close()
 
-        if result:
-            session["user"] = user
+        if user:
+            session["user"] = username
             return redirect("/predict")
 
     return render_template("login.html")
@@ -70,13 +78,16 @@ def login():
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
-        user = request.form["username"]
-        pwd = request.form["password"]
+        username = request.form["username"]
+        password = request.form["password"]
 
         con = get_db()
         cur = con.cursor()
         try:
-            cur.execute("INSERT INTO users VALUES (?,?)", (user, pwd))
+            cur.execute(
+                "INSERT INTO users (username, password) VALUES (?, ?)",
+                (username, password)
+            )
             con.commit()
         except:
             pass
@@ -92,7 +103,7 @@ def logout():
     session.clear()
     return redirect("/login")
 
-# ---------------- PREDICT ----------------
+# ---------------- PREDICTION ----------------
 @app.route("/predict", methods=["GET", "POST"])
 def predict():
     if "user" not in session:
@@ -100,24 +111,27 @@ def predict():
 
     if request.method == "POST":
         user_input = {
-            'Sex': int(request.form["sex"]),
-            'Age': float(request.form["age"]),
-            'Height': float(request.form["height"]),
-            'Weight': float(request.form["weight"]),
-            'Hypertension': int(request.form["bp"]),
-            'Diabetes': int(request.form["diabetes"]),
-            'BMI': float(request.form["bmi"]),
-            'Level': int(request.form["level"]),
-            'Fitness Goal': int(request.form["goal"]),
-            'Fitness Type': int(request.form["type"])
+            "Sex": int(request.form["sex"]),
+            "Age": float(request.form["age"]),
+            "Height": float(request.form["height"]),
+            "Weight": float(request.form["weight"]),
+            "Hypertension": int(request.form["bp"]),
+            "Diabetes": int(request.form["diabetes"]),
+            "BMI": float(request.form["bmi"]),
+            "Level": int(request.form["level"]),
+            "Fitness Goal": int(request.form["goal"]),
+            "Fitness Type": int(request.form["type"])
         }
 
         df = pd.DataFrame([user_input])
+
+        # Scale numeric features
         df[['Age', 'Height', 'Weight', 'BMI']] = scaler.transform(
             df[['Age', 'Height', 'Weight', 'BMI']]
         )
 
-        similarity = cosine_similarity(data[features], df).flatten()
+        # Similarity calculation
+        similarity = cosine_similarity(data[FEATURES], df).flatten()
         best = data.iloc[similarity.argmax()]
 
         return render_template(
