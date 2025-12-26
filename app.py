@@ -1,16 +1,21 @@
 from flask import Flask, render_template, request, redirect, session
 import sqlite3
 import pandas as pd
-import pickle
 import os
+
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.metrics.pairwise import cosine_similarity
 
-# ---------------- APP CONFIG ----------------
+# -------------------------------------------------
+# APP CONFIG
+# -------------------------------------------------
 
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-# ---------------- DATABASE (RENDER SAFE) ----------------
+# -------------------------------------------------
+# DATABASE (RENDER SAFE)
+# -------------------------------------------------
 
 DB_PATH = os.path.join("/tmp", "users.db")
 
@@ -31,13 +36,22 @@ def init_db():
 
 init_db()
 
-# ---------------- LOAD MODEL & DATA ----------------
-
-with open("model.pkl", "rb") as f:
-    scaler = pickle.load(f)
-    label_enc = pickle.load(f)
+# -------------------------------------------------
+# LOAD & PREPROCESS DATA (CRITICAL FIX)
+# -------------------------------------------------
 
 data = pd.read_csv("gym recommendation.csv")
+
+# Encode categorical columns
+label_enc = LabelEncoder()
+for col in ['Sex', 'Hypertension', 'Diabetes', 'Level', 'Fitness Goal', 'Fitness Type']:
+    data[col] = label_enc.fit_transform(data[col])
+
+# Scale numerical columns
+scaler = StandardScaler()
+data[['Age', 'Height', 'Weight', 'BMI']] = scaler.fit_transform(
+    data[['Age', 'Height', 'Weight', 'BMI']]
+)
 
 FEATURES = [
     'Sex', 'Age', 'Height', 'Weight',
@@ -45,9 +59,10 @@ FEATURES = [
     'Level', 'Fitness Goal', 'Fitness Type'
 ]
 
-# ---------------- ROUTES ----------------
+# -------------------------------------------------
+# ROUTES
+# -------------------------------------------------
 
-# ROOT ROUTE (FIX FOR "NOT FOUND")
 @app.route("/")
 def home():
     return redirect("/login")
@@ -111,21 +126,21 @@ def predict():
 
     if request.method == "POST":
         user_input = {
-            "Sex": int(request.form["sex"]),
-            "Age": float(request.form["age"]),
-            "Height": float(request.form["height"]),
-            "Weight": float(request.form["weight"]),
-            "Hypertension": int(request.form["bp"]),
-            "Diabetes": int(request.form["diabetes"]),
-            "BMI": float(request.form["bmi"]),
-            "Level": int(request.form["level"]),
-            "Fitness Goal": int(request.form["goal"]),
-            "Fitness Type": int(request.form["type"])
+            'Sex': int(request.form["sex"]),
+            'Age': float(request.form["age"]),
+            'Height': float(request.form["height"]),
+            'Weight': float(request.form["weight"]),
+            'Hypertension': int(request.form["bp"]),
+            'Diabetes': int(request.form["diabetes"]),
+            'BMI': float(request.form["bmi"]),
+            'Level': int(request.form["level"]),
+            'Fitness Goal': int(request.form["goal"]),
+            'Fitness Type': int(request.form["type"])
         }
 
         df = pd.DataFrame([user_input])
 
-        # Scale numeric features
+        # Scale numeric values
         df[['Age', 'Height', 'Weight', 'BMI']] = scaler.transform(
             df[['Age', 'Height', 'Weight', 'BMI']]
         )
@@ -143,6 +158,9 @@ def predict():
 
     return render_template("index.html")
 
-# ---------------- RUN APP ----------------
+# -------------------------------------------------
+# RUN APP
+# -------------------------------------------------
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
