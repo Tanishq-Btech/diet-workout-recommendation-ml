@@ -1,73 +1,67 @@
 from flask import Flask, render_template, request, redirect, session
+import sqlite3
 import pandas as pd
 import pickle
-import sqlite3
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.preprocessing import LabelEncoder
-import warnings
-
-warnings.filterwarnings("ignore")
 
 app = Flask(__name__)
-app.secret_key = "diet_workout_secret"
+app.secret_key = "secret123"
 
-# ---------------- LOAD DATA ----------------
-data = pd.read_csv("gym recommendation.csv")
+# ---------------- LOAD MODEL & DATA ----------------
 
-# ✅ ENCODE DATASET (FIXES 'Male' ERROR)
-label_cols = ['Sex', 'Hypertension', 'Diabetes', 'Level',
-              'Fitness Goal', 'Fitness Type']
-
-le = LabelEncoder()
-for col in label_cols:
-    data[col] = le.fit_transform(data[col])
-
-# Load scaler & encoder from model.pkl
 with open("model.pkl", "rb") as f:
     scaler = pickle.load(f)
     label_enc = pickle.load(f)
 
+data = pd.read_csv("gym recommendation.csv")
+
 features = [
-    'Sex','Age','Height','Weight',
-    'Hypertension','Diabetes','BMI',
-    'Level','Fitness Goal','Fitness Type'
+    'Sex', 'Age', 'Height', 'Weight',
+    'Hypertension', 'Diabetes', 'BMI',
+    'Level', 'Fitness Goal', 'Fitness Type'
 ]
 
 # ---------------- DATABASE ----------------
+
 def get_db():
     return sqlite3.connect("users.db")
 
 def init_db():
-    db = get_db()
-    db.execute("CREATE TABLE IF NOT EXISTS users (username TEXT, password TEXT)")
-    db.execute("""
-        CREATE TABLE IF NOT EXISTS history (
-            username TEXT,
-            exercises TEXT,
-            diet TEXT,
-            equipment TEXT
+    con = get_db()
+    cur = con.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            password TEXT
         )
     """)
-    db.commit()
-    db.close()
+    con.commit()
+    con.close()
 
 init_db()
 
+# ---------------- ROUTES ----------------
+
+# ROOT FIX (IMPORTANT)
+@app.route("/")
+def home():
+    return redirect("/login")
+
 # ---------------- LOGIN ----------------
-@app.route("/", methods=["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        u = request.form["username"]
-        p = request.form["password"]
+        user = request.form["username"]
+        pwd = request.form["password"]
 
-        db = get_db()
-        cur = db.cursor()
-        cur.execute("SELECT * FROM users WHERE username=? AND password=?", (u, p))
-        user = cur.fetchone()
-        db.close()
+        con = get_db()
+        cur = con.cursor()
+        cur.execute("SELECT * FROM users WHERE username=? AND password=?", (user, pwd))
+        result = cur.fetchone()
+        con.close()
 
-        if user:
-            session["user"] = u
+        if result:
+            session["user"] = user
             return redirect("/predict")
 
     return render_template("login.html")
@@ -76,21 +70,33 @@ def login():
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
-        db = get_db()
-        db.execute(
-            "INSERT INTO users VALUES (?, ?)",
-            (request.form["username"], request.form["password"])
-        )
-        db.commit()
-        db.close()
-        return redirect("/")
+        user = request.form["username"]
+        pwd = request.form["password"]
+
+        con = get_db()
+        cur = con.cursor()
+        try:
+            cur.execute("INSERT INTO users VALUES (?,?)", (user, pwd))
+            con.commit()
+        except:
+            pass
+        con.close()
+
+        return redirect("/login")
+
     return render_template("signup.html")
 
-# ---------------- PREDICTION ----------------
+# ---------------- LOGOUT ----------------
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
+# ---------------- PREDICT ----------------
 @app.route("/predict", methods=["GET", "POST"])
 def predict():
     if "user" not in session:
-        return redirect("/")
+        return redirect("/login")
 
     if request.method == "POST":
         user_input = {
@@ -107,54 +113,22 @@ def predict():
         }
 
         df = pd.DataFrame([user_input])
-
-        # Scale numeric features
-        df[['Age','Height','Weight','BMI']] = scaler.transform(
-            df[['Age','Height','Weight','BMI']]
+        df[['Age', 'Height', 'Weight', 'BMI']] = scaler.transform(
+            df[['Age', 'Height', 'Weight', 'BMI']]
         )
 
-        # Compute similarity
         similarity = cosine_similarity(data[features], df).flatten()
-        best_match = data.iloc[similarity.argmax()]
-
-        # 🔥 DEBUG PRINT (VERY IMPORTANT)
-        print("Workout:", best_match["Exercises"])
-        print("Equipment:", best_match["Equipment"])
-        print("Diet:", best_match["Diet"])
+        best = data.iloc[similarity.argmax()]
 
         return render_template(
             "result.html",
-            workout=best_match["Exercises"],
-            equipment=best_match["Equipment"],
-            diet=best_match["Diet"]
+            workout=best["Exercises"],
+            equipment=best["Equipment"],
+            diet=best["Diet"]
         )
 
     return render_template("index.html")
 
-# ---------------- DASHBOARD ----------------
-@app.route("/dashboard")
-def dashboard():
-    if "user" not in session:
-        return redirect("/")
-
-    db = get_db()
-    cur = db.cursor()
-    cur.execute(
-        "SELECT exercises, diet, equipment FROM history WHERE username=?",
-        (session["user"],)
-    )
-    records = cur.fetchall()
-    db.close()
-
-    return render_template("dashboard.html", records=records)
-
-# ---------------- LOGOUT ----------------
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/")
-
-# ---------------- RUN ----------------
+# ---------------- RUN APP ----------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
-
