@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Your Strategy</title>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="main-card" style="max-width: 600px;">
+            <h2><i class="fa-solid fa-star"></i> Your Personalized Plan</h2>
+            
+            <div class="result-tile">
+                <div class="icon-circle"><i class="fa-solid fa-dumbbell"></i></div>
+                <div><label>Workout Strategy</label><p style="margin:0; font-weight:600;">{{ workout }}</p></div>
+            </div>
+
+            <div class="result-tile">
+                <div class="icon-circle"><i class="fa-solid fa-apple-whole"></i></div>
+                <div><label>Nutrition Guide</label><p style="margin:0; font-weight:600;">{{ diet }}</p></div>
+            </div>
+
+            <div class="result-tile">
+                <div class="icon-circle"><i class="fa-solid fa-kit-medical"></i></div>
+                <div><label>Required Equipment</label><p style="margin:0; font-weight:600;">{{ equipment }}</p></div>
+            </div>
+
+            <button onclick="window.location.href='/predict'" class="btn-submit">Refine Parameters</button>
+        </div>
+    </div>
+</body>
+</html>

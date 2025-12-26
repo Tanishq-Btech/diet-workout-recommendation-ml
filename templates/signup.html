@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join AI Fitness | Signup</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="brand-logo">
+                    <i class="fa-solid fa-bolt-lightning"></i>
+                </div>
+                <h2>Create Account</h2>
+                <p>Join thousands of users reaching their goals with AI.</p>
+            </div>
+
+            <form method="post" class="auth-form">
+                <div class="input-box">
+                    <label><i class="fa-solid fa-user"></i> Username</label>
+                    <input type="text" name="username" placeholder="Choose a name" required>
+                </div>
+
+                <div class="input-box">
+                    <label><i class="fa-solid fa-lock"></i> Password</label>
+                    <input type="password" name="password" placeholder="••••••••" required>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    Get Started Free <i class="fa-solid fa-arrow-right"></i>
+                </button>
+
+                <div class="auth-footer">
+                    <p>Already a member? <a href="/">Login here</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | AI Diet & Workout</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<div class="page-wrapper">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="brand-icon">
+                <i class="fa-solid fa-shield-heart"></i>
+            </div>
+            <h2>Welcome Back</h2>
+            <p>Sign in to access your personalized fitness dashboard.</p>
+        </div>
+
+        <form method="post" class="auth-form">
+            <div class="input-box">
+                <label><i class="fa-solid fa-user-tag"></i> Username</label>
+                <input type="text" name="username" placeholder="Enter your username" required>
+            </div>
+
+            <div class="input-box">
+                <label><i class="fa-solid fa-key"></i> Password</label>
+                <input type="password" name="password" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn-submit">
+                Sign In <i class="fa-solid fa-right-to-bracket"></i>
+            </button>
+
+            <div class="auth-footer">
+                <p>Don't have an account? <a href="/signup">Create New Account</a></p>
+            </div>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

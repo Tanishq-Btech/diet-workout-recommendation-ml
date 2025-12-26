@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Fitness Journey | Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="page-wrapper" style="align-items: flex-start;">
+        <div class="main-card wide">
+            <div class="dashboard-header">
+                <div>
+                    <h2><i class="fa-solid fa-clock-rotate-left"></i> Recommendation History</h2>
+                    <p>Track how your personalized plans have evolved.</p>
+                </div>
+                <a href="/predict" class="btn-secondary">
+                    <i class="fa-solid fa-plus"></i> New Assessment
+                </a>
+            </div>
+
+            <div class="history-timeline">
+                {% if records|length == 0 %}
+                    <div class="empty-state">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <p>No records found. Complete your first assessment to see data here!</p>
+                    </div>
+                {% else %}
+                    {% for r in records %}
+                    <div class="history-log-card">
+                        <div class="log-side-accent"></div>
+                        <div class="log-header">
+                            <span class="log-date">Log #{{ loop.revindex }}</span>
+                            <span class="status-chip">Completed</span>
+                        </div>
+                        
+                        <div class="log-grid">
+                            <div class="log-section">
+                                <span><i class="fa-solid fa-dumbbell"></i> Workout</span>
+                                <p>{{ r[0] }}</p>
+                            </div>
+                            <div class="log-section">
+                                <span><i class="fa-solid fa-apple-whole"></i> Diet</span>
+                                <p>{{ r[1] }}</p>
+                            </div>
+                            <div class="log-section">
+                                <span><i class="fa-solid fa-toolbox"></i> Equipment</span>
+                                <p>{{ r[2] }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <div style="text-align: center; margin-top: 2rem; border-top: 1px solid #eee; padding-top: 1rem;">
+                <a href="/logout" style="color: #e74c3c; text-decoration: none; font-weight: 700;">
+                    <i class="fa-solid fa-power-off"></i> Secure Logout
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
